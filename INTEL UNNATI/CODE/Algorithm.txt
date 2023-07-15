@@ -1,0 +1,97 @@
+RESTORING DIVISION:
+module restoring_division (
+  input wire clk,
+  input wire reset,
+  input wire [7:0] dividend,
+  input wire [7:0] divisor,
+  output reg [7:0] quotient,
+  output reg [7:0] remainder,
+  output reg done
+);
+
+  reg [7:0] A;
+  reg [7:0] M;
+  reg [3:0] count;
+
+  always @(posedge clk) begin
+    if (reset) begin
+      A <= 0;
+      M <= 0;
+      count <= 0;
+      quotient <= 0;
+      remainder <= 0;
+      done <= 0;
+    end else begin
+      if (count == 0) begin
+        A <= dividend;
+        M <= divisor;
+        count <= 8;
+      end else begin
+        if (A[7:0] >= 0) begin
+          A <= {1'b0, A[7:1]};  // Shift A left by 1
+          A[0] <= M[7];
+          M <= {1'b0, M[7:1]};  // Shift M left by 1
+          M[0] <= 1'b0;
+          count <= count - 1;
+        end else begin
+          A <= A + M;
+          M <= {1'b1, M[6:0]};  // Shift M right by 1, MSB set to 1
+          count <= count - 1;
+        end
+      end
+
+      if (count == 0) begin
+        quotient <= A;
+        remainder <= M;
+        done <= 1;
+      end
+    end
+  end
+
+endmodule
+NON RESTORING DIVISION:
+module non_restoring_division_tb;
+
+  reg [7:0] dividend;
+  reg [7:0] divisor;
+  reg clk;
+  reg reset;
+
+  wire [7:0] quotient;
+  wire [7:0] remainder;
+
+  non_restoring_division dut (
+    .dividend(dividend),
+    .divisor(divisor),
+    .quotient(quotient),
+    .remainder(remainder)
+  );
+
+  initial begin
+    // Initialize testbench inputs
+    dividend = 100; // Example dividend value
+    divisor = 25; // Example divisor value
+    clk = 0;
+    reset = 1;
+
+    // Reset the module
+    #10 reset = 0;
+
+    // Provide clock signal and inputs
+    #5 clk = 1;
+    #5 clk = 0;
+    #5 clk = 1;
+    #5 clk = 0;
+
+    // Wait for the division to complete
+    #100;
+
+    // Display the results
+    $display("Quotient: %d", quotient);
+    $display("Remainder: %d", remainder);
+
+    // End the simulation
+    $finish;
+  end
+
+endmodule
